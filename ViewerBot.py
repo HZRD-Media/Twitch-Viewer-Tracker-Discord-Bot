@@ -17,7 +17,7 @@ TWITCH_OAUTH_TOKEN = os.getenv('TWITCH_OAUTH_TOKEN')
 TWITCH_NICKNAME = os.getenv('TWITCH_NICKNAME')  # Your bot's or your Twitch username
 
 # Specify the Discord channel ID to track
-TRACK_CHANNEL_ID = 'YOUR CHANNEL ID HERE'  # Replace with your Discord channel ID
+TRACK_CHANNEL_ID = ID HERE  # Replace with your Discord channel ID
 
 # Initialize the Discord client
 intents = discord.Intents.default()
@@ -88,7 +88,7 @@ async def post_viewers_list(channel, twitch_username):
         # Reset active users set for the next interval
         twitch_bot.active_users.clear()
 
-        # Wait for 15 minutes (1200 seconds)
+        # Wait for 20 minutes (1200 seconds)
         await asyncio.sleep(1200)
 
     print(f"Tracking for {twitch_username} has been stopped.")
