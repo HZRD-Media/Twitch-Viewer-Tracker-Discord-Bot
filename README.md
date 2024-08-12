@@ -31,7 +31,8 @@
 
 ### 3. Install Python and Set Up the Environment
 
-   a. Install [Python 3.8+](https://www.python.org/downloads/). (can be easier to use the one from the MS Store if using powershell)
+   a. Install Direct [Python 3.8+](https://www.python.org/downloads/). 
+   b. Install MS Store (https://www.microsoft.com/store/productId/9NCVDN91XZQP?ocid=pdpshare)
 
 ### 4. Dependencies
 
