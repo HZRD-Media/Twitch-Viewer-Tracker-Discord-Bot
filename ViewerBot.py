@@ -88,8 +88,8 @@ async def post_viewers_list(channel, twitch_username):
         # Reset active users set for the next interval
         twitch_bot.active_users.clear()
 
-        # Wait for 15 minutes (900 seconds)
-        await asyncio.sleep(900)
+        # Wait for 15 minutes (1200 seconds)
+        await asyncio.sleep(1200)
 
     print(f"Tracking for {twitch_username} has been stopped.")
 
