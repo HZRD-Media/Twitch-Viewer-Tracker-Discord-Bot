@@ -1,6 +1,7 @@
 # Twitch Viewer Tracker Discord Bot
 
-   This bot tracks active chat users on a specified Twitch stream when a Twitch link is posted in a Discord channel. It periodically updates the Discord channel with the list of active chat users and the current viewer count.
+   This bot tracks active chat users on a specified Twitch stream when a Twitch link is posted in a Discord channel.
+   It periodically updates the Discord channel with the list of active chat users and the current viewer count.
    The Bot MUST be removed from every channel in the Discord server apart from the one that you want to post to
 
 ## Features
