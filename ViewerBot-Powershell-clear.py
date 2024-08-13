@@ -126,24 +126,29 @@ async def on_ready():
 
 # Event: Message received
 @client.event
+@client.event
 async def on_message(message):
+    print(f"Message received in channel {message.channel.id}: {message.content}")
+    
     if message.author == client.user:
+        print("Ignoring the bot's own message.")
         return
 
-    print(f"Message received in channel {message.channel.id}: {message.content}")
-
-    # Only track messages in the specified channel
     if message.channel.id == TRACK_CHANNEL_ID:
         print(f"Message is in the correct channel: {TRACK_CHANNEL_ID}")
-        # Check if the message contains a Twitch link
+        
         if 'twitch.tv' in message.content:
             print("Twitch link detected")
+            
             # Extract the Twitch username from the link
             twitch_username = message.content.split('twitch.tv/')[-1].split()[0]
+            print(f"Extracted Twitch username: {twitch_username}")
 
-            # If this is a new link, start tracking
             if twitch_username not in active_links:
+                print(f"Starting tracking for {twitch_username}")
                 await start_tracking(message, twitch_username)
+    else:
+        print("Message received in a different channel.")
 
 # Event: Message deleted
 @client.event
