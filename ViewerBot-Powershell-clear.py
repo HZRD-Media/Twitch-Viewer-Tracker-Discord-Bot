@@ -28,12 +28,8 @@ client = discord.Client(intents=intents)
 # Store active Twitch links and associated tasks
 active_links = {}
 
-# Function to clear PowerShell log/output
-async def clear_powershell_log():
-    while True:
-        os.system("Clear-Host")  # This clears the PowerShell output
-        print("PowerShell log cleared.")
-        await asyncio.sleep(86400)  # Wait for 24 hours (86400 seconds)
+# Store user appearances across multiple lists
+user_appearance_count = {}
 
 # Initialize TwitchIO Bot
 class TwitchBot(commands.Bot):
@@ -81,6 +77,14 @@ async def post_viewers_list(channel, twitch_username):
         if active_users:
             viewers_list = ', '.join(active_users)
             await channel.send(f'Active users interacting in {twitch_username}: {viewers_list}')
+            
+            # Track user appearances
+            for user in active_users:
+                if user in user_appearance_count:
+                    user_appearance_count[user] += 1
+                else:
+                    user_appearance_count[user] = 1
+
         else:
             await channel.send(f'No active chat users detected for {twitch_username}.')
 
@@ -158,9 +162,20 @@ async def on_message_delete(message):
                     task.cancel()
                     await message.channel.send(f'Stopped tracking {twitch_username} as the link was removed.')
 
-                # Leave the Twitch channel
-                await twitch_bot.part_channels([twitch_username])
-                print(f"Stopped tracking {twitch_username} and left the channel.")
+                    # Leave the Twitch channel
+                    await twitch_bot.part_channels([twitch_username])
+                    print(f"Stopped tracking {twitch_username} and left the channel.")
+                
+                # Find and display users who appeared in more than one list
+                multi_appearance_users = [user for user, count in user_appearance_count.items() if count > 1]
+                if multi_appearance_users:
+                    multi_user_list = ', '.join(multi_appearance_users)
+                    await message.channel.send(f'Users who appeared in multiple lists: {multi_user_list}')
+                else:
+                    await message.channel.send('No users appeared in more than one list.')
+                
+                # Clear the user appearance count for future tracking
+                user_appearance_count.clear()
 
 # Function to get Twitch stream data
 def get_twitch_stream_data(username):
@@ -204,5 +219,4 @@ def get_twitch_oauth_token():
 loop = asyncio.get_event_loop()
 loop.create_task(client.start(DISCORD_TOKEN))
 loop.create_task(twitch_bot.start())
-loop.create_task(clear_powershell_log())  # Add the log clearing task here
 loop.run_forever()
