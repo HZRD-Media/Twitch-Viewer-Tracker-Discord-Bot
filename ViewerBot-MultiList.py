@@ -19,18 +19,6 @@ TWITCH_NICKNAME = os.getenv('TWITCH_NICKNAME')  # Your bot's or your Twitch user
 # Specify the Discord channel ID to track
 TRACK_CHANNEL_ID = ID HERE  # Replace with your Discord channel ID
 
-# Initialize the Discord client
-intents = discord.Intents.default()
-intents.message_content = True
-intents.messages = True  # To track deleted messages
-client = discord.Client(intents=intents)
-
-# Store active Twitch links and associated tasks
-active_links = {}
-
-# Store user appearances across multiple lists
-user_appearance_count = {}
-
 # List of bot usernames to ignore
 bot_usernames = [
     'moobot',
@@ -42,6 +30,18 @@ bot_usernames = [
     'soundalerts',
     'blerp'
 ]
+
+# Initialize the Discord client
+intents = discord.Intents.default()
+intents.message_content = True
+intents.messages = True  # To track deleted messages
+client = discord.Client(intents=intents)
+
+# Store active Twitch links and associated tasks
+active_links = {}
+
+# Store user appearances across multiple lists
+user_appearance_count = {}
 
 # Initialize TwitchIO Bot
 class TwitchBot(commands.Bot):
