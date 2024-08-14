@@ -31,6 +31,18 @@ active_links = {}
 # Store user appearances across multiple lists
 user_appearance_count = {}
 
+# List of bot usernames to ignore
+bot_usernames = [
+    'moobot',
+    'wizebot',
+    'nightbot',
+    'streamlabs',
+    'streamelements',
+    'pokemoncommunitygame',
+    'soundalerts',
+    'blerp'
+]
+
 # Initialize TwitchIO Bot
 class TwitchBot(commands.Bot):
 
@@ -75,15 +87,21 @@ async def post_viewers_list(channel, twitch_username):
     while twitch_username in active_links:
         active_users = await twitch_bot.get_active_users()
         if active_users:
-            viewers_list = ', '.join(active_users)
-            await channel.send(f'Active users interacting in {twitch_username}: {viewers_list}')
+            # Filter out bot usernames
+            filtered_users = [user for user in active_users if user.lower() not in bot_usernames]
             
-            # Track user appearances
-            for user in active_users:
-                if user in user_appearance_count:
-                    user_appearance_count[user] += 1
-                else:
-                    user_appearance_count[user] = 1
+            if filtered_users:
+                viewers_list = ', '.join(filtered_users)
+                await channel.send(f'Active users interacting in {twitch_username}: {viewers_list}')
+                
+                # Track user appearances
+                for user in filtered_users:
+                    if user in user_appearance_count:
+                        user_appearance_count[user] += 1
+                    else:
+                        user_appearance_count[user] = 1
+            else:
+                await channel.send(f'No non-bot chat users detected for {twitch_username}.')
 
         else:
             await channel.send(f'No active chat users detected for {twitch_username}.')
