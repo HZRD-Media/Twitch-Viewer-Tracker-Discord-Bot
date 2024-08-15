@@ -21,14 +21,15 @@ TRACK_CHANNEL_ID = ID HERE  # Replace with your Discord channel ID
 
 # List of bot usernames to ignore
 bot_usernames = [
+    'blerp'
     'moobot',
-    'wizebot',
     'nightbot',
-    'streamlabs',
-    'streamelements',
+    'pando'
     'pokemoncommunitygame',
     'soundalerts',
-    'blerp'
+    'streamelements',
+    'streamlabs',
+    'wizebot',
 ]
 
 # Initialize the Discord client
@@ -131,11 +132,8 @@ async def start_tracking(message, twitch_username):
         await message.channel.send(f'Started tracking {twitch_username}.')
         await twitch_bot.join_channels([twitch_username])
 
-        # Provide an initial viewer count when tracking starts
-        stream_data = get_twitch_stream_data(twitch_username)
-        if stream_data:
-            viewer_count = stream_data['viewer_count']
-            await message.channel.send(f'{twitch_username} currently has {viewer_count} viewers.')
+        # Remove the initial viewer count message
+        # The viewer count will be sent in the `post_viewers_list` function periodically
 
 # Event: Bot is ready
 @client.event
@@ -143,7 +141,6 @@ async def on_ready():
     print(f'We have logged in as {client.user}')
 
 # Event: Message received
-@client.event
 @client.event
 async def on_message(message):
     print(f"Message received in channel {message.channel.id}: {message.content}")
@@ -188,22 +185,27 @@ async def on_message_delete(message):
                     # Leave the Twitch channel
                     await twitch_bot.part_channels([twitch_username])
                     print(f"Stopped tracking {twitch_username} and left the channel.")
+
+                    # Clear the console
+                    os.system('cls' if os.name == 'nt' else 'clear')
                 
                 # Find and display users who appeared in more than one list
                 multi_appearance_users = [user for user, count in user_appearance_count.items() if count > 1]
                 single_appearance_users = [user for user, count in user_appearance_count.items() if count == 1]
 
-                if multi_appearance_users:
-                    multi_user_list = ', '.join(multi_appearance_users)
-                    await message.channel.send(f'Users who appeared in multiple lists: {multi_user_list}')
-                else:
-                    await message.channel.send('No users appeared in more than one list.')
-
+                # Print the single appearance list first
                 if single_appearance_users:
-                    single_user_list = ', '.join(single_appearance_users)
+                    single_user_list = ', '.join(reversed(single_appearance_users))
                     await message.channel.send(f'Users who appeared in only one list: {single_user_list}')
                 else:
                     await message.channel.send('No users appeared in only one list.')
+
+                # Then print the multiple appearance list
+                if multi_appearance_users:
+                    multi_user_list = ', '.join(reversed(multi_appearance_users))
+                    await message.channel.send(f'Users who appeared in multiple lists: {multi_user_list}')
+                else:
+                    await message.channel.send('No users appeared in more than one list.')
 
                 # Clear the user appearance count for future tracking
                 user_appearance_count.clear()
@@ -235,7 +237,7 @@ def get_twitch_oauth_token():
     url = 'https://id.twitch.tv/oauth2/token'
     params = {
         'client_id': TWITCH_CLIENT_ID,
-        'client_secret': TWITCH_CLIENT_SECRET,
+        'client_secret': TWITCH_CLIENT_SECRET,  # Removed the extra `'` here
         'grant_type': 'client_credentials'
     }
     try:
