@@ -210,6 +210,11 @@ async def on_message_delete(message):
                     # Clear the console after stopping tracking
                     os.system('cls' if os.name == 'nt' else 'clear')
 
+                    # Reload bot usernames from JSON file
+                    global bot_usernames
+                    bot_usernames = await load_bot_usernames()
+                    logger.info(f"Reloaded bot usernames: {bot_usernames}")
+
                 # Find and display users who appeared in more than one list
                 multi_appearance_users = [user for user, count in user_appearance_count.items() if count > 1]
                 single_appearance_users = [user for user, count in user_appearance_count.items() if count == 1]
