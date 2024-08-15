@@ -21,10 +21,11 @@ TRACK_CHANNEL_ID = ID HERE  # Replace with your Discord channel ID
 
 # List of bot usernames to ignore
 bot_usernames = [
-    'blerp'
+    'blerp',
+    'bot_ng_bayan',
     'moobot',
     'nightbot',
-    'pando'
+    'pando',
     'pokemoncommunitygame',
     'soundalerts',
     'streamelements',
