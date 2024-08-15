@@ -27,21 +27,34 @@ TWITCH_NICKNAME = os.getenv('TWITCH_NICKNAME')  # Your bot's or your Twitch user
 TRACK_CHANNEL_ID = ID_HERE  # Replace with your Discord channel ID
 
 # URL to the bot_usernames.json file in your GitHub repository
-bot_usernames_url = 'https://raw.githubusercontent.com/HZRD-Media/Twitch-Viewer-Tracker-Discord-Bot/ac4f1a960ad974afbe0f2b52f81f78395999024b/bot_usernames.json'
+bot_usernames_url = 'https://raw.githubusercontent.com/HZRD-Media/Twitch-Viewer-Tracker-Discord-Bot/main/bot_usernames.json'
 
 # Async function to download and load the JSON file
 async def load_bot_usernames():
     async with aiohttp.ClientSession() as session:
         async with session.get(bot_usernames_url) as response:
             if response.status == 200:
-                data = await response.json()
-                return data['bot_usernames']
+                text = await response.text()  # Get the response as text
+                logger.info(f"Raw response text: {text}")  # Print the raw response text for debugging
+                try:
+                    data = json.loads(text)  # Parse the text as JSON
+                    return data.get('bot_usernames', [])
+                except json.JSONDecodeError as e:
+                    logger.error(f"JSON decode error: {e}")
+                    return []
             else:
                 logger.error(f"Failed to download bot_usernames.json, status code: {response.status}")
                 return []
 
-# Load the bot usernames
-bot_usernames = asyncio.run(load_bot_usernames())
+# Ensure there's a current event loop in the main thread
+try:
+    loop = asyncio.get_running_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+# Load the bot usernames using the event loop
+bot_usernames = loop.run_until_complete(load_bot_usernames())
 
 # Initialize the Discord client
 intents = discord.Intents.default()
@@ -194,6 +207,9 @@ async def on_message_delete(message):
                     await twitch_bot.part_channels([twitch_username])
                     logger.info(f"Stopped tracking {twitch_username} and left the channel.")
 
+                    # Clear the console after stopping tracking
+                    os.system('cls' if os.name == 'nt' else 'clear')
+
                 # Find and display users who appeared in more than one list
                 multi_appearance_users = [user for user, count in user_appearance_count.items() if count > 1]
                 single_appearance_users = [user for user, count in user_appearance_count.items() if count == 1]
@@ -257,7 +273,6 @@ async def get_twitch_oauth_token():
     return None
 
 # Run both the Discord and Twitch bots
-loop = asyncio.get_event_loop()
 loop.create_task(client.start(DISCORD_TOKEN))
 loop.create_task(twitch_bot.start())
 loop.run_forever()
