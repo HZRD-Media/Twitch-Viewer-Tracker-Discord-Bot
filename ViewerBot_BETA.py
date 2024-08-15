@@ -26,13 +26,22 @@ TWITCH_NICKNAME = os.getenv('TWITCH_NICKNAME')  # Your bot's or your Twitch user
 # Specify the Discord channel ID to track
 TRACK_CHANNEL_ID = ID_HERE  # Replace with your Discord channel ID
 
-# Path to the JSON file containing bot usernames
-bot_usernames_file = 'path/to/bot_usernames.json'
+# URL to the bot_usernames.json file in your GitHub repository
+bot_usernames_url = 'https://raw.githubusercontent.com/HZRD-Media/Twitch-Viewer-Tracker-Discord-Bot/ac4f1a960ad974afbe0f2b52f81f78395999024b/bot_usernames.json'
 
-# Read the bot usernames from the JSON file
-with open(bot_usernames_file, 'r') as file:
-    data = json.load(file)
-    bot_usernames = data['bot_usernames']
+# Async function to download and load the JSON file
+async def load_bot_usernames():
+    async with aiohttp.ClientSession() as session:
+        async with session.get(bot_usernames_url) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data['bot_usernames']
+            else:
+                logger.error(f"Failed to download bot_usernames.json, status code: {response.status}")
+                return []
+
+# Load the bot usernames
+bot_usernames = asyncio.run(load_bot_usernames())
 
 # Initialize the Discord client
 intents = discord.Intents.default()
