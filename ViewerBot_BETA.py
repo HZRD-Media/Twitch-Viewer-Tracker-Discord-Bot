@@ -35,9 +35,9 @@ async def load_bot_usernames():
         async with session.get(bot_usernames_url) as response:
             if response.status == 200:
                 text = await response.text()  # Get the response as text
-                logger.info(f"Raw response text: {text}")  # Print the raw response text for debugging
                 try:
                     data = json.loads(text)  # Parse the text as JSON
+                    logger.info(f"Bots to ignore loaded successfully.")  # More user-friendly log message
                     return data.get('bot_usernames', [])
                 except json.JSONDecodeError as e:
                     logger.error(f"JSON decode error: {e}")
@@ -80,32 +80,31 @@ class TwitchBot(commands.Bot):
         self.logger.info(f'Logged in to Twitch as {self.nick}')
 
     async def event_message(self, message):
-        # Only track if the message is from a user (not the bot itself)
         if message.echo:
             return
-
-        # Add the user to the active users set
         self.active_users.add(message.author.name)
         self.logger.info(f'Detected chat user: {message.author.name}')
-        
-        # Process commands if any are added in the future
         await self.handle_commands(message)
 
     async def get_active_users(self):
         return list(self.active_users)
 
-    async def get_viewers(self, channel_name):
-        url = f'https://tmi.twitch.tv/group/user/{channel_name}/chatters'
+    async def _join_channel(self, channel):
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    response.raise_for_status()  # Will raise an error for bad status codes
-                    data = await response.json()
-                    viewers = data.get('chatters', {}).get('viewers', [])
-                    return viewers
-        except aiohttp.ClientError as err:
-            self.logger.error(f"An error occurred while fetching viewers: {err}")
-        return []
+            await super()._join_channel(channel)
+        except ConnectionResetError as e:
+            self.logger.error(f"ConnectionResetError while joining channel {channel}: {e}")
+            await self.reconnect()
+
+    async def reconnect(self, attempt=1):
+        try:
+            self.logger.info(f"Attempting to reconnect... (Attempt {attempt})")
+            await self.close()  # Close existing connection
+            await self.connect()  # Attempt to reconnect
+        except Exception as e:
+            self.logger.error(f"Failed to reconnect: {e}")
+            await asyncio.sleep(min(10 * attempt, 60))  # Exponential backoff
+            await self.reconnect(attempt + 1)
 
 # Initialize the TwitchBot with the logger instance
 twitch_bot = TwitchBot(logger=logger)
@@ -113,36 +112,40 @@ twitch_bot = TwitchBot(logger=logger)
 # Function to post active viewers list in Discord
 async def post_viewers_list(channel, twitch_username):
     while twitch_username in active_links:
-        active_users = await twitch_bot.get_active_users()
-        if active_users:
-            # Filter out bot usernames using the list from the JSON file
-            filtered_users = [user for user in active_users if user.lower() not in bot_usernames]
-            
-            if filtered_users:
-                viewers_list = ', '.join(filtered_users)
-                await channel.send(f'Active users interacting in {twitch_username}: {viewers_list}')
+        try:
+            active_users = await twitch_bot.get_active_users()
+            if active_users:
+                # Filter out bot usernames using the list from the JSON file
+                filtered_users = [user for user in active_users if user.lower() not in bot_usernames]
                 
-                # Track user appearances
-                for user in filtered_users:
-                    user_appearance_count[user] = user_appearance_count.get(user, 0) + 1
+                if filtered_users:
+                    viewers_list = ', '.join(filtered_users)
+                    await channel.send(f'Active users interacting in {twitch_username}: {viewers_list}')
+                    
+                    # Track user appearances
+                    for user in filtered_users:
+                        user_appearance_count[user] = user_appearance_count.get(user, 0) + 1
+                else:
+                    await channel.send(f'No non-bot chat users detected for {twitch_username}.')
+
             else:
-                await channel.send(f'No non-bot chat users detected for {twitch_username}.')
+                await channel.send(f'No active chat users detected for {twitch_username}.')
+        except ConnectionResetError as e:
+            logger.error(f"Connection reset error for {twitch_username}: {e}")
+            await twitch_bot.reconnect()
 
-        else:
-            await channel.send(f'No active chat users detected for {twitch_username}.')
+        try:
+            stream_data = await get_twitch_stream_data(twitch_username)
+            if stream_data:
+                viewer_count = stream_data['viewer_count']
+                await channel.send(f'{twitch_username} currently has {viewer_count} viewers.')
+            else:
+                await channel.send(f'{twitch_username} is not currently live.')
+        except ConnectionResetError as e:
+            logger.error(f"Connection reset error while fetching stream data for {twitch_username}: {e}")
+            await twitch_bot.reconnect()
 
-        # Get the latest viewer count
-        stream_data = await get_twitch_stream_data(twitch_username)
-        if stream_data:
-            viewer_count = stream_data['viewer_count']
-            await channel.send(f'{twitch_username} currently has {viewer_count} viewers.')
-        else:
-            await channel.send(f'{twitch_username} is not currently live.')
-
-        # Reset active users set for the next interval
         twitch_bot.active_users.clear()
-
-        # Wait for 20 minutes (1200 seconds)
         await asyncio.sleep(1200)
 
     logger.info(f"Tracking for {twitch_username} has been stopped.")
@@ -257,7 +260,7 @@ async def get_twitch_stream_data(username):
                     return None
     except aiohttp.ClientError as err:
         logger.error(f"An error occurred while fetching stream data: {err}")
-    return None
+        return None
 
 # Function to get Twitch OAuth token
 async def get_twitch_oauth_token():
@@ -275,7 +278,7 @@ async def get_twitch_oauth_token():
                 return data['access_token']
     except aiohttp.ClientError as err:
         logger.error(f"An error occurred while obtaining OAuth token: {err}")
-    return None
+        return None
 
 # Run both the Discord and Twitch bots
 loop.create_task(client.start(DISCORD_TOKEN))
